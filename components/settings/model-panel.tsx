@@ -11,6 +11,9 @@ const VENDORS = {
 };
 
 type Category = "local" | "vendor" | "custom";
+
+/** 已保存配置的快照，只用于判断表单是否有未保存的改动。 */
+type SavedForm = { backend: "api" | "acp"; category: Category; vendor: keyof typeof VENDORS; endpoint: string; model: string; timeout: number };
 type SettingsPayload = {
   settings?: {
     agentBackend?: "api" | "acp";
@@ -33,17 +36,24 @@ export function ModelPanel() {
   const [endpoint, setEndpoint] = useState("https://api.deepseek.com"), [model, setModel] = useState("deepseek-chat"), [key, setKey] = useState("");
   const [configured, setConfigured] = useState(false), [timeout, setTimeoutValue] = useState(30_000), [locked, setLocked] = useState<string[]>([]);
   const [status, setStatus] = useState(""), [models, setModels] = useState<string[]>([]), [busy, setBusy] = useState(false);
+  // 已保存配置的快照。「获取模型」「测试连接」只对已保存的配置生效（服务端不接受请求里带来的地址与密钥），
+  // 所以表单有改动时必须先保存，否则测的其实是另一份配置。
+  const [saved, setSaved] = useState<SavedForm | null>(null);
 
   useEffect(() => {
     void fetch("/api/settings/model").then(response => response.json()).then((payload: SettingsPayload) => {
       if (!payload.settings) return;
       const settings = payload.settings;
-      setBackend(settings.agentBackend ?? "api");
+      const nextBackend = settings.agentBackend ?? "api";
+      const nextCategory = settings.category ?? (settings.provider === "ollama" ? "local" : settings.provider === "deepseek" ? "vendor" : "custom");
+      const nextVendor: keyof typeof VENDORS = settings.vendor && settings.vendor in VENDORS ? settings.vendor as keyof typeof VENDORS : "deepseek";
+      setBackend(nextBackend);
       if (settings.acp) { setAcpLabel(settings.acp.label); setCommand(settings.acp.command); setArgs(JSON.stringify(settings.acp.args)); }
-      setCategory(settings.category ?? (settings.provider === "ollama" ? "local" : settings.provider === "deepseek" ? "vendor" : "custom"));
-      if (settings.vendor && settings.vendor in VENDORS) setVendor(settings.vendor);
+      setCategory(nextCategory);
+      setVendor(nextVendor);
       setEndpoint(settings.baseUrl); setModel(settings.model); setTimeoutValue(settings.timeoutMs);
       setConfigured(settings.apiKeyConfigured); setLocked(settings.locked);
+      setSaved({ backend: nextBackend, category: nextCategory, vendor: nextVendor, endpoint: settings.baseUrl, model: settings.model, timeout: settings.timeoutMs });
     }).catch(() => setStatus("模型设置读取失败"));
   }, []);
 
@@ -68,22 +78,47 @@ export function ModelPanel() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error?.message ?? "保存失败");
     setConfigured(payload.settings.apiKeyConfigured); setKey("");
+    setSaved({ backend, category, vendor, endpoint, model, timeout });
     window.dispatchEvent(new Event("chordnote-model-changed"));
   }
 
+  function isDirty() {
+    if (!saved) return true;
+    if (key.trim()) return true;
+    if (backend !== saved.backend || category !== saved.category || timeout !== saved.timeout) return true;
+    if (backend === "acp") return false;
+    if (category === "vendor" && vendor !== saved.vendor) return true;
+    return endpoint !== saved.endpoint || model !== saved.model;
+  }
+
   async function run(action: "save" | "models" | "test") {
+    if (action === "save") {
+      setBusy(true); setStatus("");
+      try { await save(); setStatus("已保存"); }
+      catch (error) { setStatus(error instanceof Error ? error.message : "保存失败"); }
+      finally { setBusy(false); }
+      return;
+    }
+
+    // 「获取模型」「测试连接」读的是服务端已保存的配置。表单改过就必须先保存，
+    // 否则测的是另一份配置——以前这里会顺手保存，测试失败后应用已经指向一个连不上的端点。
+    if (isDirty()) {
+      setModels([]);
+      setStatus(`表单里有未保存的修改。先点「保存」，再${action === "models" ? "获取模型" : "测试连接"}。`);
+      return;
+    }
+
     setBusy(true); setStatus("");
     try {
-      await save();
       if (action === "models") {
         const response = await fetch("/api/settings/model/models"), payload = await response.json();
         if (!response.ok) throw new Error(payload.error?.message ?? "获取模型失败");
         setModels(payload.models); setStatus(`已获取 ${payload.models.length} 个模型，可在 Agent 输入框中选择。`);
-      } else if (action === "test") {
+      } else {
         const response = await fetch("/api/settings/model/test", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }), payload = await response.json();
         if (!response.ok) throw new Error(payload.error?.message ?? "测试连接失败");
         setStatus(payload.checks.map((check: { label: string; status: string; detail: string }) => `${check.label}：${check.status} ${check.detail}`).join("\n"));
-      } else setStatus("已保存");
+      }
     } catch (error) { setStatus(error instanceof Error ? error.message : "操作失败"); }
     finally { setBusy(false); }
   }
@@ -126,9 +161,10 @@ export function ModelPanel() {
 
     <div className="model-actions">
       <button className="is-primary" type="button" disabled={busy} onClick={() => void run("save")}>保存</button>
-      <button type="button" disabled={busy || backend === "acp"} onClick={() => void run("models")}>获取模型</button>
-      <button type="button" disabled={busy} onClick={() => void run("test")}>测试连接</button>
-      <button className="is-danger" type="button" disabled={busy || backend === "acp" || locked.includes("apiKey")} onClick={() => void clearKey()}>清除密钥</button>
+      <button type="button" disabled={busy || backend === "acp"} title="读取已保存配置里的模型列表" onClick={() => void run("models")}>获取模型</button>
+      <button type="button" disabled={busy} title="测试已保存的配置；改了表单请先保存" onClick={() => void run("test")}>测试连接</button>
+      {/* 本地模型与 ACP 都没有可清除的密钥；按钮留着只会让人以为这里有东西可清。 */}
+      {backend === "api" && category !== "local" ? <button className="is-danger" type="button" disabled={busy || locked.includes("apiKey")} onClick={() => void clearKey()}>清除密钥</button> : null}
     </div>
     {models.length ? <div className="model-results"><span>可用模型</span><ul>{models.map(id => <li key={id}>{id}</li>)}</ul></div> : null}
     <p className="model-status" role="status">{status}</p>

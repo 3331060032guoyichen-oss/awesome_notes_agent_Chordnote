@@ -2,6 +2,7 @@
 
 import { ModelPanel } from "./model-panel";
 import { ArchivePanel } from "./archive-panel";
+import { SectionHeader } from "./section-header";
 import { useEffect, useState } from "react";
 
 import { AGENT_MANUAL, MANUAL_VERSION } from "../../lib/agent/manual";
@@ -65,17 +66,6 @@ function writeStorage(key: string, value: string) {
   } catch {
     /* 隐私模式等场景下 localStorage 不可用，静默降级 */
   }
-}
-
-function SectionHeader({ title }: { title: string; body: string }) {
-  return (
-    <header className="workspace-heading compact-heading">
-      <div>
-        <p className="eyebrow">Settings</p>
-        <h1>{title}</h1>
-      </div>
-    </header>
-  );
 }
 
 type SettingsSpaceProps = {

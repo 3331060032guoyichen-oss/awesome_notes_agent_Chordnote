@@ -28,29 +28,26 @@
 
 ```text
 /
-├── Raw/                    # 原始资料
-│   ├── articles/           # 文章和博客
-│   ├── papers/             # 论文和研究
-│   ├── books/              # 书籍和章节
-│   ├── media/              # 图片、视频、音频
-│   └── data/               # 数据文件
-├── Wiki/                   # 知识库
-│   ├── index               # 内容索引视图：按类型分组，实时生成
-│   ├── log                 # 操作日志视图：按时间倒序读取 audit_log
-│   ├── entitles/           # 实体页面（人物、组织、产品等）
-│   ├── concept/            # 概念页面（主题、理论、方法等）
-│   ├── sources/            # 源文档摘要
-│   ├── synthesis/          # 综合分析
-│   ├── questions/          # 探索性问题和答案
-│   └── overview/           # 知识库总览
-└── Schema.md               # 本配置文档
+├── Raw/
+│   ├── articles/
+│   ├── papers/
+│   ├── books/
+│   ├── media/
+│   └── data/
+├── Wiki/
+│   ├── entitles/
+│   ├── concept/
+│   ├── sources/
+│   ├── synthesis/
+│   └── questions/
+└── Schema.md
 ```
+
+`index` 与 `overview` **不是目录**：内容索引由知识列表与图谱动态提供，总览由这些查询即时生成，都不落文件。不要尝试创建 `Wiki/index/` 或 `Wiki/overview/`。
 
 以上沿用现有逻辑分类；未整理笔记是独立入口，新建原始记录先保存在 Raw 根路径，收录知识页时将来源归入所选类别。旧路径继续兼容，现有知识页路径兼容旧的 `wilki/` 前缀。目录是本地数据库中的分类映射。
 
-`index` 与 `log` 是只读视图，不是文件：`index` 由知识列表与图谱实时生成，`log` 读取 `audit_log`；不另建 `index.md` 或 `log.md`。
-
-`index` 视图按类别组织知识页，便于查找和导航；Raw 只保留 articles、papers、books、media、data 分类，不设 index 或收件箱目录。已有对应知识页的来源属于已整理；其他来源显示在“未整理笔记”。目录与整理状态以每轮服务端提供的当前数据为准，历史对话中的旧描述不作为当前状态。
+Raw 只保留 articles、papers、books、media、data 分类，不设 index 或收件箱目录。已有对应知识页的来源属于已整理；其他来源显示在“未整理笔记”。目录与整理状态以每轮服务端提供的当前数据为准，历史对话中的旧描述不作为当前状态。
 
 ## 页面类型与命名
 
@@ -61,7 +58,7 @@
 | entity | `Wiki/entitles/` | 人、组织、工具、书、地点 |
 | synthesis | `Wiki/synthesis/` | 多来源综合、对比与判断 |
 | question | `Wiki/questions/` | 归档的查询答案与探索 |
-| meta | `Wiki/index/`、`Wiki/overview/` | 按类别组织的知识内容索引、总览等结构页；内容索引由系统动态提供 |
+| meta | 不落文件 | 知识索引与总览由 `GET /api/knowledge`、`GET /api/graph` 动态提供，AI 不手写索引页 |
 
 每份整理稿必须分别选择 Raw 的来源载体类别和 Wiki 的页面用途类别。课堂笔记、教材推导、概念讲解这类以知识本身为主的材料，主页面放 `concept`，即使只有一个来源；只有论文、文章、书籍、媒体、数据等需要保留出处摘要的外部资料，才建 `sources` 页。`sources` 与 `concept` 可以并存，但不要让整个知识库都停在 `sources`。可提议模式下让用户在确认界面核对这两个类别。
 

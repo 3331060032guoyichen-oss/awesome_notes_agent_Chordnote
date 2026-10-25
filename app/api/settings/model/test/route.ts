@@ -11,6 +11,7 @@ import {
   type ChatProvider,
   type ChatToolDefinition,
 } from "../../../../../lib/ai/provider";
+import { unreachableDetail } from "../../../../../lib/ai/diagnostics";
 import { isLocalJsonRequest } from "../../../../../lib/api/local-request";
 import { runHarness } from "../../../../../lib/agent/runtime";
 
@@ -92,12 +93,12 @@ export async function POST(request: Request) {
       status: "ok",
       detail: `读回 ${models.length} 个模型。`,
     });
-  } catch (error) {
+  } catch {
     checks.push({
       id: "reachable",
       label: "服务可访问",
       status: "failed",
-      detail: error instanceof Error ? error.message : "无法连接模型服务。",
+      detail: unreachableDetail(settings),
     });
   }
 

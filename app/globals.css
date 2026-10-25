@@ -6194,6 +6194,11 @@ input::placeholder {
 .settings-empty b { color: var(--ink); font-size: 14px; }
 .settings-empty p { margin: 0; color: var(--quiet); font-size: 12px; line-height: 1.7; }
 
+.archive-panel {
+  display: grid;
+  gap: 16px;
+}
+
 .archive-list {
   display: grid;
   gap: 10px;
@@ -6204,7 +6209,7 @@ input::placeholder {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
-  padding: 15px 16px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--surface-raised);
@@ -6240,9 +6245,104 @@ input::placeholder {
   font-size: 10px;
 }
 
+.archive-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.archive-row-actions .button-secondary {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+}
+
+.archive-danger {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--quiet);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.archive-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 42%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.archive-danger:disabled {
+  cursor: not-allowed;
+  opacity: .4;
+}
+
+.purge-confirm {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--danger) 26%, var(--line));
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.purge-confirm h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.purge-confirm > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.purge-consent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.purge-consent input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--danger);
+}
+
+.purge-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.button-danger {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--danger);
+  color: #fff;
+  font-size: 12px;
+}
+
+.button-danger:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.button-danger:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+
 @media (max-width: 560px) {
   .archive-row { grid-template-columns: 1fr; }
-  .archive-row .button-secondary { justify-self: start; }
+  .archive-row-actions { justify-self: start; }
 }
 
 /* Settings 二级导航 */
